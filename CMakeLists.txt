@@ -20,7 +20,9 @@ add_executable(senior
         dht20.h
         dht20.cpp
         crc_8_16.h
-        crc_8_16.cpp)
+        crc_8_16.cpp
+        lte_mqtt_client.h
+        lte_mqtt_client.cpp)
 
 # pull in common dependencies
 target_link_libraries(senior pico_stdlib pico_multicore hardware_i2c)

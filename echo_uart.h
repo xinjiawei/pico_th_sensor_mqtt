@@ -14,10 +14,12 @@
 #define ECHO_UART_TX_PIN 8
 #define ECHO_UART_RX_PIN 9
 
-#define ECHO_LEVEL_OTHERS 0
-#define ECHO_LEVEL_INFO 1
+#define ECHO_LEVEL_FORCE 0
+#define ECHO_LEVEL_AT_COMMAND 1
 #define ECHO_LEVEL_DEBUG 2
-#define ECHO_LEVEL_AT_COMMAND 3
+#define ECHO_LEVEL_INFO 3
+#define ECHO_LEVEL_WARNNING 4
+#define ECHO_LEVEL_ERROR 5
 using namespace std;
 
 typedef const char * constcharp;
@@ -31,7 +33,7 @@ void echo_uart_init();
 
 bool change_echo_level(int level);
 
-bool echo_uart(constcharp message, int level=ECHO_LEVEL_OTHERS);
+bool echo_uart(constcharp message, int level = ECHO_LEVEL_INFO);
 bool get_uart(uartGetData * data);
 
 std::string int2str(uint64_t index);

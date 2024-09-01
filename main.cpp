@@ -14,16 +14,15 @@
 #include "hardware/i2c.h"
 #include "hardware/watchdog.h"
 
+#include "main.h"
 #include "echo_uart.h"
 #include "bmp280_i2c.h"
 #include "dht20.h"
 #include "mqtt_client.h"
+#include "lte_mqtt_client.h"
 #include "led_blink.h"
 
 using namespace std;
-
-#define TRIGGER_COMMAND_FROM_CORE1 1 // 初始化core1完成后, 发送给core1 启动信号获取循环
-#define TRIGGER_COMMAND_FROM_CORE0 2 // 初始化core1完成后, 发送给core1 启动信号获取循环
 
 const char wifi_ssid[] = "PDCN";
 const char wifi_password[] = "15033678058";
@@ -86,10 +85,10 @@ void core0_sio_irq() {
 
     }
 
-    echo_uart("------core0 trigger s-----\r\n");
-    echo_uart(int2str(core0_rx_val).c_str());
-    echo_uart("\r\n");
-    echo_uart("------core0 trigger e-----\r\n");
+	echo_uart("------core0 trigger s-----\r\n", ECHO_LEVEL_DEBUG);
+	echo_uart(int2str(core0_rx_val).c_str(), ECHO_LEVEL_DEBUG);
+	echo_uart("\r\n", ECHO_LEVEL_DEBUG);
+	echo_uart("------core0 trigger e-----\r\n", ECHO_LEVEL_DEBUG);
 }
 
 /**
@@ -102,10 +101,10 @@ void core1_sio_irq() {
 
     multicore_fifo_clear_irq();
 
-    echo_uart("------core1 trigger s-----\r\n");
-    echo_uart(int2str(core1_rx_val).c_str());
-    echo_uart("\r\n");
-    echo_uart("------core1 trigger e-----\r\n");
+	echo_uart("------core1 trigger s-----\r\n", ECHO_LEVEL_DEBUG);
+	echo_uart(int2str(core1_rx_val).c_str(), ECHO_LEVEL_DEBUG);
+	echo_uart("\r\n", ECHO_LEVEL_DEBUG);
+	echo_uart("------core1 trigger e-----\r\n", ECHO_LEVEL_DEBUG);
 
 }
 
@@ -133,12 +132,12 @@ void core1_entry() {
             continue;
         }
 
-        echo_uart("--------------------\r\nall_cmd: ");
-        echo_uart((uart_get_data->data).c_str(),3);
-        echo_uart("\r\ncmd_length: ",3);
-        echo_uart(int2str(all_cmd_length).c_str(),3);
-        echo_uart("\r\n",3);
-        echo_uart("--------------------\r\n",3);
+		echo_uart("--------------------\r\nall_cmd: ", ECHO_LEVEL_DEBUG);
+		echo_uart((uart_get_data->data).c_str(), ECHO_LEVEL_DEBUG);
+		echo_uart("\r\ncmd_length: ", ECHO_LEVEL_DEBUG);
+		echo_uart(int2str(all_cmd_length).c_str(), ECHO_LEVEL_DEBUG);
+		echo_uart("\r\n", ECHO_LEVEL_DEBUG);
+		echo_uart("--------------------\r\n", ECHO_LEVEL_DEBUG);
 
 
         // cut "e"
@@ -170,42 +169,47 @@ void core1_entry() {
         if(strcmp(cmd_type,"01") == 0){
             // reboot
             echo_uart("rebooting\r\n", ECHO_LEVEL_INFO);
-            esp8266_mqtt_send_msg("setting", "reboot success");
+            // setting_change_send_msg("setting", "reboot success");
             software_reset();
         }else if(strcmp(cmd_type,"02") == 0){
-            // connect wifi
-            std::string str = cmd_body;
+            #ifdef NET_ESP8266
+			// connect wifi
+			std::string str = cmd_body;
 
-            std::regex ws_re("\\s+");
-            std::vector<std::string> res(
-                    std::sregex_token_iterator(
-                            str.begin(), str.end(), ws_re, -1
-                    ),
-                    std::sregex_token_iterator()
-            );
+			std::regex ws_re("\\s+");
+			std::vector<std::string> res(
+				std::sregex_token_iterator(
+					str.begin(), str.end(), ws_re, -1),
+				std::sregex_token_iterator());
 
-            const char *passwd = res[1].c_str();
-            const char *ssid = res[0].c_str();
+			const char *passwd = res[1].c_str();
+			const char *ssid = res[0].c_str();
 
-            echo_uart("\r\nssid: ", ECHO_LEVEL_INFO);
-            echo_uart(ssid, ECHO_LEVEL_INFO);
-            echo_uart("\r\npassword: ", ECHO_LEVEL_INFO);
-            echo_uart(passwd, ECHO_LEVEL_INFO);
-            echo_uart("\r\n", ECHO_LEVEL_INFO);
+			echo_uart("\r\nssid: ", ECHO_LEVEL_INFO);
+			echo_uart(ssid, ECHO_LEVEL_INFO);
+			echo_uart("\r\npassword: ", ECHO_LEVEL_INFO);
+			echo_uart(passwd, ECHO_LEVEL_INFO);
+			echo_uart("\r\n", ECHO_LEVEL_INFO);
 
-            int con = esp8266_connect_wifi(ssid, passwd,1);
-            if(!con){
-                blink(1,1,1,2,2);
-            }
-//            esp8266_reset();
-            echo_uart("esp8266 wifi init ok\r\n", ECHO_LEVEL_INFO);
-            // reboot
-            software_reset();
+			int con = esp8266_connect_wifi(ssid, passwd, 1);
+			if (!con)
+			{
+				blink(1, 1, 1, 2, 2);
+			}
+			//            esp8266_reset();
+			echo_uart("esp8266 wifi init ok\r\n", ECHO_LEVEL_INFO);
+			// reboot
+			software_reset();
+            #elif defined(NET_LTE)
+            #else
+            #warning net not int
+            #endif // NET_ESP8266
+
         }else if(strcmp(cmd_type,"03") == 0){
             // change level
-            echo_uart("\r\nwill change level to: ", ECHO_LEVEL_INFO);
-            echo_uart(cmd_body, ECHO_LEVEL_INFO);
-            echo_uart("\r\n", ECHO_LEVEL_INFO);
+            echo_uart("\r\nwill change level to: ", ECHO_LEVEL_FORCE);
+			echo_uart(cmd_body, ECHO_LEVEL_FORCE);
+			echo_uart("\r\n", ECHO_LEVEL_FORCE);
 
             change_echo_level(ECHO_LEVEL_AT_COMMAND);
             sleep_ms(1000);
@@ -219,12 +223,16 @@ void core1_entry() {
 
             echo_uart("+++\r\n", ECHO_LEVEL_AT_COMMAND);
             sleep_ms(1000);
-            esp8266_mqtt_send_msg("setting", temp);
             software_reset();
         }else if(strcmp(cmd_type,"04") == 0){
+            #ifdef NET_ESP8266
             // restore wifi
             esp8266_restore();
             software_reset();
+            #elif defined(NET_LTE)
+            #else
+            #warning net not int
+            #endif // NET_ESP8266
 		}
 	    else if (strcmp(cmd_type, "05") == 0)
 		{
@@ -305,14 +313,14 @@ void i2c_scan(){
     // Make the I2C pins available to picotool
     bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
 
-    echo_uart("\r\nI2C Bus Scan\r\n");
-    echo_uart("   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
+	echo_uart("\r\nI2C Bus Scan\r\n", ECHO_LEVEL_DEBUG);
+	echo_uart("   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n", ECHO_LEVEL_DEBUG);
 
     char aaa[50] = "";
     for (int addr = 0; addr < (1 << 7); ++addr) {
         if (addr % 16 == 0) {
             sprintf(aaa, "%02x ", addr);
-            echo_uart(aaa);
+			echo_uart(aaa, ECHO_LEVEL_DEBUG);
         }
 
         // Perform a 1-byte dummy read from the probe address. If a slave
@@ -328,10 +336,10 @@ void i2c_scan(){
         else
             ret = i2c_read_blocking(i2c_default, addr, &rxdata, 1, false);
 
-        echo_uart(ret < 0 ? "." : "@");
-        echo_uart(addr % 16 == 15 ? "\r\n" : "  ");
+		echo_uart(ret < 0 ? "." : "@", ECHO_LEVEL_DEBUG);
+		echo_uart(addr % 16 == 15 ? "\r\n" : "  ", ECHO_LEVEL_DEBUG);
     }
-    echo_uart("Done.\r\n");
+	echo_uart("Done.\r\n", ECHO_LEVEL_DEBUG);
     blink(1,1,2,2,2);
 #endif
 }
@@ -355,7 +363,8 @@ int main() {
 
     echo_uart("echo_uart_init ok\r\n", ECHO_LEVEL_INFO);
 
-    // todo esp8266
+#ifdef NET_ESP8266
+	// todo esp8266
     bool init = esp8266_connect_init();
     if(!init){
         blink(1,1,1,1,2);
@@ -367,7 +376,7 @@ int main() {
 
     int con = esp8266_connect_wifi(wifi_ssid, wifi_password);
     if(!con){
-        echo_uart("esp8266 wifi connect error\r\n", ECHO_LEVEL_INFO);
+		echo_uart("esp8266 wifi connect error\r\n", ECHO_LEVEL_ERROR);
         blink(1,1,1,2,2);
     }
     echo_uart("esp8266 wifi connect ok\r\n", ECHO_LEVEL_INFO);
@@ -377,7 +386,7 @@ int main() {
 //    if (1){
         bool mqtt_init = esp8266_mqtt_init(mqtt_server_client_id,mqtt_server_user, mqtt_server_passwd,mqtt_server_host, mqtt_server_tcp_port, mqtt_server_will_topic, mqtt_server_will_message);
         if(!mqtt_init){
-            echo_uart("esp8266 mqtt init error\r\n", ECHO_LEVEL_INFO);
+			echo_uart("esp8266 mqtt init error\r\n", ECHO_LEVEL_ERROR);
             blink(1,2,1,2,2);
         }
         echo_uart("esp8266 mqtt init ok\r\n", ECHO_LEVEL_INFO);
@@ -385,7 +394,7 @@ int main() {
 
     bool send = esp8266_mqtt_send_msg("online", mqtt_server_client_id);
     if(!send){
-        echo_uart("esp8266 mqtt send test error\r\n", ECHO_LEVEL_INFO);
+		echo_uart("esp8266 mqtt send test error\r\n", ECHO_LEVEL_ERROR);
         //blink(2,1,1,1,1);
     }else{
         echo_uart("esp8266 mqtt send test ok\r\n", ECHO_LEVEL_INFO);
@@ -397,12 +406,24 @@ int main() {
         blink(2,2,1,1,1);
     }
      */
+#elif defined(NET_LTE)
+	echo_uart("lte init start\r\n", ECHO_LEVEL_INFO);
+	int init_lte_result = init_lte();
+	if (!init_lte_result)
+	{
+		echo_uart("lte init error\r\n", ECHO_LEVEL_ERROR);
+		blink(2, 2, 2, 1, 2);
+	}
+	echo_uart("lte init success\r\n", ECHO_LEVEL_INFO);
+#else
+#warning net not init
+#endif // NET_ESP8266
 
     // todo 气压传感器
     echo_uart("bmp280 init start\r\n", ECHO_LEVEL_INFO);
     bool init_bmp280 = init_pressureS();
     if(!init_bmp280){
-        echo_uart("bmp280 init error\r\n", ECHO_LEVEL_INFO);
+		echo_uart("bmp280 init error\r\n", ECHO_LEVEL_ERROR);
         blink(2,2,1,1,1);
     }
     echo_uart("bmp280 init success\r\n", ECHO_LEVEL_INFO);
@@ -412,7 +433,7 @@ int main() {
     echo_uart("dht20 init start\r\n", ECHO_LEVEL_INFO);
     bool dht20_init = dht20_data_init();
     if(dht20_init){
-        echo_uart("dht20 init error\r\n", ECHO_LEVEL_INFO);
+		echo_uart("dht20 init error\r\n", ECHO_LEVEL_ERROR);
         exit(0);
     }
     echo_uart("dht20 init success\r\n", ECHO_LEVEL_INFO);
@@ -450,21 +471,32 @@ int main() {
         float p_temperature = bmp280_data.temp_c;
         float p_pressure = bmp280_data.pressure_kpa;
 
-        echo_uart(int2str(count).c_str());
-        echo_uart("\r\n");
-        echo_uart(float2str(temperature).c_str());
-        echo_uart("\r\n");
-        echo_uart(float2str(humidity).c_str());
-        echo_uart("\r\n");
+		/*
+		echo_uart(int2str(count).c_str(), ECHO_LEVEL_DEBUG);
+		echo_uart("\r\n", ECHO_LEVEL_DEBUG);
+		echo_uart(float2str(temperature).c_str(), ECHO_LEVEL_DEBUG);
+		echo_uart("\r\n", ECHO_LEVEL_DEBUG);
+		echo_uart(float2str(humidity).c_str(), ECHO_LEVEL_DEBUG);
+		echo_uart("\r\n", ECHO_LEVEL_DEBUG);
+		 **/
+
 
         char mqtt_msg[100] = "";
-        sprintf(mqtt_msg, R"({\"n\":\"%02X\"\,\"t\":\"%.1f\"\,\"h\":\"%.1f\"\,\"tp\":\"%.1f\"\,\"p\":\"%.2f\"\})", count, temperature, humidity, p_temperature, p_pressure);
-        echo_uart(mqtt_msg);
-        echo_uart("\r\n");
-        bool send = esp8266_mqtt_send_msg("dht20", mqtt_msg);
+        #ifdef NET_ESP8266
+		sprintf(mqtt_msg, R"({\"n\":\"%02X\"\,\"t\":\"%.1f\"\,\"h\":\"%.1f\"\,\"tp\":\"%.1f\"\,\"p\":\"%.2f\"\})", count, temperature, humidity, p_temperature, p_pressure);
+		bool send = esp8266_mqtt_send_msg("dht20", mqtt_msg);
+        #elif defined(NET_LTE)
+		sprintf(mqtt_msg, "{\"n\":\"%02X\",\"t\":\"%.1f\",\"h\":\"%.1f\",\"tp\":\"%.1f\",\"p\":\"%.2f\"}", count, temperature, humidity, p_temperature, p_pressure);
+		bool send = lte_mqtt_send_msg("dht20", mqtt_msg);
+        #else
+        #warning net not int
+        #endif // NET_ESP8266
+
         if(!send){
-            echo_uart("mqtt msg send error\r\n");
+			echo_uart("mqtt msg send error\r\n", ECHO_LEVEL_ERROR);
         }
+		echo_uart(mqtt_msg, ECHO_LEVEL_DEBUG);
+		echo_uart("\r\n", ECHO_LEVEL_DEBUG);
         count++;
         blink();
 		if (get_loop_sleep() != timee)

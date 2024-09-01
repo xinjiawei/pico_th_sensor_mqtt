@@ -12,7 +12,7 @@
 #include "echo_uart.h"
 using namespace std;
 
-int ECHO_LEVEL = ECHO_LEVEL_INFO;
+int ECHO_LEVEL = ECHO_LEVEL_DEBUG;
 
 /*
  * 初始化输出打印
@@ -38,10 +38,17 @@ bool change_echo_level(int level){
  * @return
  */
 bool echo_uart(constcharp message, int level){
-    if(level == ECHO_LEVEL){
-        uart_puts(UART_ECHO, message);
-    }
-    return true;
+	if (level <= 1) // ECHO_LEVEL_FORCE and ECHO_LEVEL_AT_COMMAND
+	{
+		uart_puts(UART_ECHO, message);
+		return true;
+	}
+	else if (level >= ECHO_LEVEL)
+	{
+		uart_puts(UART_ECHO, message);
+		return true;
+	}
+	return false;
 }
 
 /**
@@ -53,14 +60,14 @@ bool get_uart(uartGetData * data) {
     int i=0;
     char rx_buffers[100] = {0};
 
-    echo_uart("read uart message\r\n");
+	echo_uart("read uart message\r\n", ECHO_LEVEL_DEBUG);
     while(uart_is_readable_within_us(UART_ECHO,20)){
         rx_buffers[i++] = uart_getc(UART_ECHO);
 
         if(i >= 3){
             if(strcmp(&rx_buffers[i-1], "e") == 0){
-                echo_uart("ok");
-                echo_uart("\r\n");
+				echo_uart("ok", ECHO_LEVEL_DEBUG);
+				echo_uart("\r\n", ECHO_LEVEL_DEBUG);
                 data->data = rx_buffers;
                 data->length = i;
                 return true;

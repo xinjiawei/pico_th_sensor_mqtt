@@ -37,10 +37,10 @@ bool sendCMD(constcharp cmd,constcharp act,uint64_t timeout_ms) {
 	uart_puts(UART_ID, "\r\n");
 	
 	t = time_us_64();
-//    echo_uart("------time test s-----\r\n");
-//    echo_uart(int2str(t).c_str());
-//    echo_uart("\r\n");
-//    echo_uart("------time test e-----\r\n");
+	//    echo_uart("------time test s-----\r\n", ECHO_LEVEL_DEBUG);
+	//    echo_uart(int2str(t).c_str(), ECHO_LEVEL_DEBUG);
+	//    echo_uart("\r\n", ECHO_LEVEL_DEBUG);
+	//    echo_uart("------time test e-----\r\n", ECHO_LEVEL_DEBUG);
 
 
     while(time_us_64() - t < timeout_ms*1000){
