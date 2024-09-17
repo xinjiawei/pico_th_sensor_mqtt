@@ -43,7 +43,7 @@ bool sendCMD(constcharp cmd,constcharp act,uint64_t timeout_ms) {
 	//    echo_uart("------time test e-----\r\n", ECHO_LEVEL_DEBUG);
 
 
-    while(time_us_64() - t < timeout_ms*1000){
+    while(time_us_64() - t < timeout_ms * 1000){
         while(uart_is_readable_within_us(UART_ID,2000)){
             buffers[i++] = uart_getc(UART_ID);
         }
@@ -97,8 +97,24 @@ int esp8266_connect_wifi(constcharp ssid, constcharp passwd, const int force){
 int esp8266_reset(){
     return sendCMD("AT+RST","OK");
 }
+
 int esp8266_restore(){
     return sendCMD("AT+RESTORE","OK");
+}
+
+bool esp8266_smartconfig()
+{
+	echo_uart("enter smart config start in 60s\r\n", ECHO_LEVEL_INFO);
+	if (sendCMD("AT+CWSTARTSMART=3", "smartconfig connected wifi", 60000))
+	{
+		echo_uart("enter smart config ok\r\n", ECHO_LEVEL_INFO);
+		return true;
+	}
+	else
+	{
+		echo_uart("enter smart config error\r\n", ECHO_LEVEL_INFO);
+		return false;
+	}
 }
 
 /*

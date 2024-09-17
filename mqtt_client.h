@@ -35,3 +35,5 @@ bool esp8266_mqtt_send_msg(constcharp topic, constcharp message);
 bool esp8266_mqtt_send_bin(constcharp topic, int length);
 int esp8266_reset();
 int esp8266_restore();
+
+bool esp8266_smartconfig();

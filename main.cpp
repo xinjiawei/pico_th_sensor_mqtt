@@ -44,8 +44,13 @@ char echo_rx_buffers[100] = {0};
 
 int sys_loop = 5;
 
+int main_thread_step = 1;
+
 void software_reset()
 {
+	sleep_ms(1500);
+	esp8266_reset();
+	echo_uart("software rebooting\r\n", ECHO_LEVEL_INFO);
     // Enable the watchdog, requiring the watchdog to be updated every 100ms or the chip will reboot
     // second arg is pause on debug which means the watchdog will pause when stepping through code
     watchdog_enable(100, 1);
@@ -206,7 +211,7 @@ void core1_entry() {
             #endif // NET_ESP8266
 
         }else if(strcmp(cmd_type,"03") == 0){
-            // change level
+            // change log level
             echo_uart("\r\nwill change level to: ", ECHO_LEVEL_FORCE);
 			echo_uart(cmd_body, ECHO_LEVEL_FORCE);
 			echo_uart("\r\n", ECHO_LEVEL_FORCE);
@@ -227,9 +232,13 @@ void core1_entry() {
         }else if(strcmp(cmd_type,"04") == 0){
             #ifdef NET_ESP8266
             // restore wifi
-            esp8266_restore();
-            software_reset();
-            #elif defined(NET_LTE)
+            //esp8266_restore();
+			// enter smart config
+			main_thread_step = 0;
+			sleep_ms(1500);
+			esp8266_smartconfig();
+			software_reset();
+#elif defined(NET_LTE)
             #else
             #warning net not int
             #endif // NET_ESP8266
@@ -265,7 +274,7 @@ void core1_entry() {
 			{
 				set_loop_sleep(0.3);
 			}
-			else if (strcmp(cmd_body, "7") == 0)
+			else if (strcmp(cmd_body, "8") == 0)
 			{
 				set_loop_sleep(0.5);
 			}
@@ -282,6 +291,7 @@ void core1_entry() {
 			echo_uart("\r\n", ECHO_LEVEL_INFO);
 		}else{
             echo_uart("unknown cmd", ECHO_LEVEL_INFO);
+            echo_uart("\r\n01e #reboot\r\n02PDCN 15033678058e #connect wifi\r\n030e #change lora LEVEL\r\n04e #wifi smartconfig\r\n051e #loop wait", ECHO_LEVEL_INFO);
             echo_uart("\r\n", ECHO_LEVEL_INFO);
             echo_uart("\r\n", ECHO_LEVEL_INFO);
         }
@@ -377,13 +387,16 @@ int main() {
     int con = esp8266_connect_wifi(wifi_ssid, wifi_password);
     if(!con){
 		echo_uart("esp8266 wifi connect error\r\n", ECHO_LEVEL_ERROR);
-        blink(1,1,1,2,2);
+        blink(1,1,1,2,2,true);
+
+		esp8266_smartconfig();
+		software_reset();
     }
     echo_uart("esp8266 wifi connect ok\r\n", ECHO_LEVEL_INFO);
 
     // 看门狗触发
-    if (!watchdog_caused_reboot()) {
-//    if (1){
+//    if (!watchdog_caused_reboot()) {
+    if (1){
         bool mqtt_init = esp8266_mqtt_init(mqtt_server_client_id,mqtt_server_user, mqtt_server_passwd,mqtt_server_host, mqtt_server_tcp_port, mqtt_server_will_topic, mqtt_server_will_message);
         if(!mqtt_init){
 			echo_uart("esp8266 mqtt init error\r\n", ECHO_LEVEL_ERROR);
@@ -463,7 +476,11 @@ int main() {
 	float timee = get_loop_sleep();
 	while (true){
 		sleep_ms(1000 * timee);
-        dht20_measurement tempdht20_data = dht20_data_get();
+		if (!main_thread_step)
+		{
+			continue;
+		}
+		dht20_measurement tempdht20_data = dht20_data_get();
         float temperature = tempdht20_data.temperature;
         float humidity = tempdht20_data.humidity;
         bmp280Reading bmp280_data =  get_pressureS();

@@ -12,7 +12,7 @@
 #include "echo_uart.h"
 using namespace std;
 
-int ECHO_LEVEL = ECHO_LEVEL_DEBUG;
+int ECHO_LEVEL = ECHO_LEVEL_INFO;
 
 /*
  * 初始化输出打印
