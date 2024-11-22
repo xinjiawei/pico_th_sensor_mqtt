@@ -25,14 +25,14 @@
 using namespace std;
 
 const char wifi_ssid[] = "PDCN";
-const char wifi_password[] = "15033678058";
+const char wifi_password[] = "";
 
 constcharp mqtt_server_host = "hb01.mqtt.mb6.top";
 constcharp mqtt_server_tcp_port = "18830";
 constcharp mqtt_server_ws_port = "18831";
 constcharp mqtt_server_client_id = "node002";
-constcharp mqtt_server_user = "admin";
-constcharp mqtt_server_passwd = "447797839";
+constcharp mqtt_server_user = "";
+constcharp mqtt_server_passwd = "";
 constcharp mqtt_server_will_topic = "offline";
 constcharp mqtt_server_will_message = "will disconnect";
 
