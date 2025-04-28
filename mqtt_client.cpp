@@ -104,8 +104,8 @@ int esp8266_restore(){
 
 bool esp8266_smartconfig()
 {
-	echo_uart("enter smart config start in 60s\r\n", ECHO_LEVEL_INFO);
-	if (sendCMD("AT+CWSTARTSMART=3", "smartconfig connected wifi", 60000))
+	echo_uart("enter smart config start 60s\r\n", ECHO_LEVEL_INFO);
+	if (sendCMD("AT+CWSTARTSMART=1", "smartconfig connected wifi", 60000))
 	{
 		echo_uart("enter smart config ok\r\n", ECHO_LEVEL_INFO);
 		return true;
@@ -122,7 +122,7 @@ bool esp8266_smartconfig()
 N2=A,AT+RST
 
 N103=2,连接模式,1000
-N3=A,AT+CWMODE=3
+N3=A,AT+CWMODE=1
 
 N104=0,连接,1000
 N4=A,AT+CWJAP="PDCN""15033678058"
@@ -188,6 +188,7 @@ bool esp8266_connect_init(){
     while(uart_is_readable(UART_ID)) uart_getc(UART_ID);
 
     bool res = sendCMD("AT","OK");
+	sendCMD("AT+CWMODE=1", "OK");
     if(!res){
         return false;
     }
