@@ -99,12 +99,15 @@ int esp8266_reset(){
 }
 
 int esp8266_restore(){
-    return sendCMD("AT+RESTORE","OK");
+    return sendCMD("AT+RESTORE","OK", 10000);
 }
 
 bool esp8266_smartconfig()
 {
-	echo_uart("enter smart config start 60s\r\n", ECHO_LEVEL_INFO);
+	echo_uart("enter smart config\r\n", ECHO_LEVEL_INFO);
+	sendCMD("AT+CWMODE=1", "OK");
+	echo_uart("CWMODE 1\r\n", ECHO_LEVEL_INFO);
+	echo_uart("60s\r\n", ECHO_LEVEL_INFO);
 	if (sendCMD("AT+CWSTARTSMART=1", "smartconfig connected wifi", 60000))
 	{
 		echo_uart("enter smart config ok\r\n", ECHO_LEVEL_INFO);

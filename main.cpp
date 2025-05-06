@@ -24,7 +24,7 @@
 
 using namespace std;
 
-const char wifi_ssid[] = "Kwrt_2G";
+const char wifi_ssid[] = "Kwrt_2G0";
 const char wifi_password[] = "13403136513";
 
 constcharp mqtt_server_host = "10.168.1.128";
@@ -171,13 +171,16 @@ void core1_entry() {
 
         uart_rx_blink();
 
-        if(strcmp(cmd_type,"01") == 0){
-            // reboot
-            echo_uart("rebooting\r\n", ECHO_LEVEL_INFO);
-            // setting_change_send_msg("setting", "reboot success");
-            software_reset();
-        }else if(strcmp(cmd_type,"02") == 0){
-            #ifdef NET_ESP8266
+		if (strcmp(cmd_type, "01") == 0)
+		{
+			// reboot
+			echo_uart("rebooting\r\n", ECHO_LEVEL_INFO);
+			// setting_change_send_msg("setting", "reboot success");
+			software_reset();
+		}
+		else if (strcmp(cmd_type, "02") == 0)
+		{
+#ifdef NET_ESP8266
 			// connect wifi
 			std::string str = cmd_body;
 
@@ -205,45 +208,48 @@ void core1_entry() {
 			echo_uart("esp8266 wifi init ok\r\n", ECHO_LEVEL_INFO);
 			// reboot
 			software_reset();
-            #elif defined(NET_LTE)
-            #else
-            #warning net not int
-            #endif // NET_ESP8266
-
-        }else if(strcmp(cmd_type,"03") == 0){
-            // change log level
-            echo_uart("\r\nwill change level to: ", ECHO_LEVEL_FORCE);
+#elif defined(NET_LTE)
+#else
+#warning net not int
+#endif // NET_ESP8266
+		}
+		else if (strcmp(cmd_type, "03") == 0)
+		{
+			// change log level
+			echo_uart("\r\nwill change level to: ", ECHO_LEVEL_FORCE);
 			echo_uart(cmd_body, ECHO_LEVEL_FORCE);
 			echo_uart("\r\n", ECHO_LEVEL_FORCE);
 
-            change_echo_level(ECHO_LEVEL_AT_COMMAND);
-            sleep_ms(1000);
+			change_echo_level(ECHO_LEVEL_AT_COMMAND);
+			sleep_ms(1000);
 
-            echo_uart("+++\r\n", ECHO_LEVEL_AT_COMMAND);
-            sleep_ms(1000);
-            char temp[20] = "";
-            sprintf(temp, "AT+LEVEL%s\r\n", cmd_body);
-            echo_uart(temp, ECHO_LEVEL_AT_COMMAND);
-            sleep_ms(1000);
+			echo_uart("+++\r\n", ECHO_LEVEL_AT_COMMAND);
+			sleep_ms(1000);
+			char temp[20] = "";
+			sprintf(temp, "AT+LEVEL%s\r\n", cmd_body);
+			echo_uart(temp, ECHO_LEVEL_AT_COMMAND);
+			sleep_ms(1000);
 
-            echo_uart("+++\r\n", ECHO_LEVEL_AT_COMMAND);
-            sleep_ms(1000);
-            software_reset();
-        }else if(strcmp(cmd_type,"04") == 0){
-            #ifdef NET_ESP8266
-            // restore wifi
-            //esp8266_restore();
+			echo_uart("+++\r\n", ECHO_LEVEL_AT_COMMAND);
+			sleep_ms(1000);
+			software_reset();
+		}
+		else if (strcmp(cmd_type, "04") == 0)
+		{
+#ifdef NET_ESP8266
+			// restore wifi
+			// esp8266_restore();
 			// enter smart config
 			main_thread_step = 0;
 			sleep_ms(1500);
 			esp8266_smartconfig();
 			software_reset();
 #elif defined(NET_LTE)
-            #else
-            #warning net not int
-            #endif // NET_ESP8266
+#else
+#warning net not int
+#endif // NET_ESP8266
 		}
-	    else if (strcmp(cmd_type, "05") == 0)
+		else if (strcmp(cmd_type, "05") == 0)
 		{
 			// change flush time
 			if (strcmp(cmd_body, "1") == 0)
@@ -289,13 +295,23 @@ void core1_entry() {
 			echo_uart("change loop time to ", ECHO_LEVEL_INFO);
 			echo_uart(cmd_body, ECHO_LEVEL_INFO);
 			echo_uart("\r\n", ECHO_LEVEL_INFO);
-		}else{
-            echo_uart("unknown cmd", ECHO_LEVEL_INFO);
-            echo_uart("\r\n01e #reboot\r\n02PDCN 15033678058e #connect wifi\r\n030e #change lora LEVEL\r\n04e #wifi smartconfig\r\n051e #loop wait", ECHO_LEVEL_INFO);
+		}
+		else if (strcmp(cmd_type, "06") == 0)
+		{
+#ifdef NET_ESP8266
+			echo_uart("esp8266_restore\r\n", ECHO_LEVEL_INFO);
+			esp8266_restore();
+			software_reset();
+#endif
+		}
+		else
+		{
+			echo_uart("unknown cmd", ECHO_LEVEL_INFO);
+            echo_uart("\r\n01e #reboot\r\n02PDCN 15033678058e #connect wifi\r\n030e #change lora LEVEL\r\n04e #wifi smartconfig\r\n051e #loop wait\r\n06e restore wifi", ECHO_LEVEL_INFO);
             echo_uart("\r\n", ECHO_LEVEL_INFO);
             echo_uart("\r\n", ECHO_LEVEL_INFO);
-        }
-        init_get_data = {"",0};
+		}
+		init_get_data = {"",0};
     }
 }
 
