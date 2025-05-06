@@ -188,7 +188,11 @@ bool esp8266_connect_init(){
     while(uart_is_readable(UART_ID)) uart_getc(UART_ID);
 
     bool res = sendCMD("AT","OK");
-	sendCMD("AT+CWMODE=1", "OK");
+	if (!res)
+	{
+		return false;
+	}
+	res = sendCMD("AT+CWMODE=1", "OK");
     if(!res){
         return false;
     }

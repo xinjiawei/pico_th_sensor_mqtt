@@ -24,10 +24,10 @@
 
 using namespace std;
 
-const char wifi_ssid[] = "PDCN";
-const char wifi_password[] = "";
+const char wifi_ssid[] = "Kwrt_2G";
+const char wifi_password[] = "13403136513";
 
-constcharp mqtt_server_host = "act.jiawei.xin";
+constcharp mqtt_server_host = "10.168.1.128";
 constcharp mqtt_server_tcp_port = "18830";
 constcharp mqtt_server_ws_port = "18831";
 constcharp mqtt_server_client_id = "node002";
